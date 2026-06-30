@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreArticleRequest;
 use App\Http\Requests\UpdateArticleRequest;
+use App\Jobs\ProcessArticleJob;
 use App\Models\Article;
 use Illuminate\Http\Request;
 
@@ -23,7 +24,17 @@ class ArticleController extends Controller
 
     public function store(StoreArticleRequest $request)
     {
-        Article::create([
+
+        $article = Article::where('url', $request->url)->first();
+
+        if ($article) {
+            return redirect()->back()->with([
+                'summary' => $article->summary,
+                'message' => 'Summary already exists.',
+            ]);
+        }
+        
+        $article = Article::create([
 
             'title' => $request->title,
 
@@ -33,6 +44,9 @@ class ArticleController extends Controller
 
         ]);
 
+        ProcessArticleJob::dispatch($article);
+
+        // dd(env('OPENAI_API_KEY'));
         return redirect()
             ->route('articles.index')
             ->with('success', 'Article created successfully.');
