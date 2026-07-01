@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Events\ArticleStatusUpdated;
+use App\Events\SummaryCompleted;
 use App\Models\Article;
 use App\Services\ArticleExtractorService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -13,8 +15,8 @@ class ProcessArticleJob implements ShouldQueue
 {
     use InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 5;
-    public $backoff = 15;
+    public $tries = 3;
+    public $backoff = 10;
 
     /**
      * Create a new job instance.
@@ -34,6 +36,8 @@ class ProcessArticleJob implements ShouldQueue
             'status' => 'processing',
         ]);
 
+        event(new ArticleStatusUpdated($this->article));
+        
         $extractor = new ArticleExtractorService();
 
         // 2. Step A: Get Raw Text
@@ -58,6 +62,8 @@ class ProcessArticleJob implements ShouldQueue
             }
 
             $this->article->update(['status' => 'failed']);
+
+            event(new ArticleStatusUpdated($this->article));
             return;
         }
 
@@ -68,5 +74,10 @@ class ProcessArticleJob implements ShouldQueue
             'key_points' => $aiData['key_points'], // Stores the array of 5 points
             'status' => 'completed',
         ]);
+
+        event(new ArticleStatusUpdated($this->article));
+
+        // Fire your email event separately
+        event(new SummaryCompleted($this->article));
     }
 }

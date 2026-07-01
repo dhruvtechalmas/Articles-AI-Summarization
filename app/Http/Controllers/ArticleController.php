@@ -33,7 +33,7 @@ class ArticleController extends Controller
                 'message' => 'Summary already exists.',
             ]);
         }
-        
+
         $article = Article::create([
 
             'title' => $request->title,

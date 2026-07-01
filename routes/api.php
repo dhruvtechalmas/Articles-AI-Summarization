@@ -13,7 +13,7 @@ Route::get('/user', function (Request $request) {
 // Route::apiResource('articles', ArticleApiController::class);use App\Http\Controllers\Api\ArticleApiController;
 
 Route::post('/articles', [ArticleApiController::class, 'store'])
-    ->middleware('throttle:2,2');
+    ->middleware('throttle:1,1');
 
 Route::get('/articles', [ArticleApiController::class, 'index']);
 Route::get('/articles/{article}', [ArticleApiController::class, 'show']);

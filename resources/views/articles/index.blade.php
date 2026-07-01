@@ -22,16 +22,6 @@
 
     <div class="card-body">
 
-        @if(session('success'))
-
-            <div class="alert alert-success">
-
-                {{ session('success') }}
-
-            </div>
-
-        @endif
-
         <div class="table-responsive">
 
             <table class="table table-bordered table-hover align-middle">
@@ -88,47 +78,24 @@
 
                         </td>
 
-                        <td>
+                      <td id="status-{{ $article->id }}">
 
                             @switch($article->status)
 
                                 @case('pending')
-
-                                <span class="badge bg-warning">
-
-                                    Pending
-
-                                </span>
-
-                                @break
+                                    <span class="badge bg-warning">Pending</span>
+                                    @break
 
                                 @case('processing')
-
-                                <span class="badge bg-info">
-
-                                    Processing
-
-                                </span>
-
-                                @break
+                                    <span class="badge bg-info">Processing</span>
+                                    @break
 
                                 @case('completed')
-
-                                <span class="badge bg-success">
-
-                                    Completed
-
-                                </span>
-
-                                @break
+                                    <span class="badge bg-success">Completed</span>
+                                    @break
 
                                 @default
-
-                                <span class="badge bg-danger">
-
-                                    Failed
-
-                                </span>
+                                    <span class="badge bg-danger">Failed</span>
 
                             @endswitch
 
@@ -154,19 +121,16 @@
 
                             </a>
 
-                            <form action="{{ route('articles.destroy',$article) }}"
+                             <form id="deleteForm" action="{{ route('articles.destroy',$article) }}"
                                   method="POST"
-                                  class="d-inline">
+                                  class="d-inline"
+                                   onsubmit="return confirmDelete(this)">
 
                                 @csrf
                                 @method('DELETE')
 
-                                <button
-                                    onclick="return confirm('Delete this article?')"
-                                    class="btn btn-danger btn-sm">
-
+                                 <button type="submit" class="btn btn-danger btn-sm">
                                     Delete
-
                                 </button>
 
                             </form>
@@ -204,5 +168,63 @@
     </div>
 
 </div>
+
+
+@if(session('success'))
+<script>
+Swal.fire({
+    icon: 'success',
+    title: 'Success!',
+    text: '{{ session('success') }}',
+    timer: 2000,
+    showConfirmButton: false
+});
+</script>
+@endif
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    console.log('Echo:', window.Echo);
+
+    if (!window.Echo) {
+        console.error('Echo is not loaded');
+        return;
+    }
+
+    window.Echo.channel('articles')
+        .listen('.article.status.updated', function (e) {
+
+            console.log('EVENT RECEIVED', e);
+
+            let badge = '';
+
+            switch (e.status) {
+                case 'pending':
+                    badge = '<span class="badge bg-warning">Pending</span>';
+                    break;
+
+                case 'processing':
+                    badge = '<span class="badge bg-info">Processing</span>';
+                    break;
+
+                case 'completed':
+                    badge = '<span class="badge bg-success">Completed</span>';
+                    break;
+
+                default:
+                    badge = '<span class="badge bg-danger">Failed</span>';
+            }
+
+            const statusCell = document.getElementById('status-' + e.id);
+
+            if (statusCell) {
+                statusCell.innerHTML = badge;
+            }
+        });
+
+});
+</script>
 
 @endsection

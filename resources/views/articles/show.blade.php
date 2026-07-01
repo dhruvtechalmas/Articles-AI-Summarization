@@ -1,158 +1,156 @@
 <x-app-layout>
 
-<div class="container mt-4">
+    <div class="container mt-4">
 
-    <div class="card">
+        <div class="card">
 
-        <div class="card-header">
+            <div class="card-header">
 
-            <h4>
+                <h4>
 
-                Article Details
+                    Article Details
 
-            </h4>
+                </h4>
 
-        </div>
+            </div>
 
-        <div class="card-body">
+            <div class="card-body">
 
-            <table class="table">
+                <table class="table">
 
-                <tr>
+                    <tr>
 
-                    <th width="180">
+                        <th width="180">
 
-                        Title
+                            Title
 
-                    </th>
+                        </th>
 
-                    <td>
+                        <td>
 
-                        {{ $article->title }}
+                            {{ $article->title }}
 
-                    </td>
+                        </td>
 
-                </tr>
+                    </tr>
 
-                <tr>
+                    <tr>
 
-                    <th>
+                        <th>
 
-                        URL
+                            URL
 
-                    </th>
+                        </th>
 
-                    <td>
+                        <td>
 
-                        <a href="{{ $article->url }}"
-                            target="_blank">
+                            <a href="{{ $article->url }}" target="_blank">
 
-                            {{ $article->url }}
+                                {{ $article->url }}
 
-                        </a>
+                            </a>
 
-                    </td>
+                        </td>
 
-                </tr>
+                    </tr>
 
-                <tr>
+                    <tr>
 
-                    <th>
+                        <th>
 
-                        Status
+                            Status
 
-                    </th>
+                        </th>
 
-                    <td>
+                        <td>
 
-                        {{ ucfirst($article->status) }}
+                            {{ ucfirst($article->status) }}
 
-                    </td>
+                        </td>
 
-                </tr>
+                    </tr>
 
-                <tr>
+                    <tr>
 
-                    <th>
+                        <th>
 
-                        Content
+                            Content
 
-                    </th>
+                        </th>
 
-                    <td>
+                        <td>
 
-                        {!! nl2br(e($article->content ?? 'Not Generated Yet')) !!}
+                            {!! nl2br(e($article->content ?? 'Not Generated Yet')) !!}
 
-                    </td>
+                        </td>
 
-                </tr>
+                    </tr>
 
-                <tr>
+                    <tr>
 
-                    <th>
+                        <th>
 
-                        Summary
+                            Summary
 
-                    </th>
+                        </th>
 
-                    <td>
+                        <td>
 
-                        {!! nl2br(e($article->summary ?? 'Not Generated Yet')) !!}
+                            {!! nl2br(e($article->summary ?? 'Not Generated Yet')) !!}
 
-                    </td>
+                        </td>
 
-                </tr>
+                    </tr>
 
-                <tr>
+                    <tr>
 
-                    <th>
+                        <th>
 
-                        Key Points
+                            Key Points
 
-                    </th>
+                        </th>
 
-                    <td>
+                        <td>
 
-                        @if($article->key_points)
+                            @if($article->key_points)
 
-                            <ul>
+                                <ul>
 
-                                @foreach($article->key_points as $point)
+                                    @foreach($article->key_points as $point)
 
-                                    <li>
+                                        <li>
 
-                                        {{ $point }}
+                                            {{ $point }}
 
-                                    </li>
+                                        </li>
 
-                                @endforeach
+                                    @endforeach
 
-                            </ul>
+                                </ul>
 
-                        @else
+                            @else
 
-                            Not Generated Yet
+                                Not Generated Yet
 
-                        @endif
+                            @endif
 
-                    </td>
+                        </td>
 
-                </tr>
+                    </tr>
 
-            </table>
+                </table>
 
-            <a
-                href="{{ route('articles.index') }}"
-                class="btn btn-secondary">
+                <a href="{{ route('articles.index') }}" class="btn btn-secondary">
 
-                Back
+                    Back
 
-            </a>
+                </a>
+
+            </div>
 
         </div>
 
     </div>
 
-</div>
 
 </x-app-layout>

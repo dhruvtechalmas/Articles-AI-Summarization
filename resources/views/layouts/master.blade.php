@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <head>
 
     <meta charset="UTF-8">
@@ -9,42 +11,64 @@
 
     <title>AI Article Summarizer</title>
 
-    @vite(['resources/css/app.css','resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
 </head>
 
 <body class="bg-light">
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
 
-    <div class="container">
+        <div class="container">
 
-        <a class="navbar-brand" href="{{ route('articles.index') }}">
+            <a class="navbar-brand" href="{{ route('articles.index') }}">
 
-            AI Article Summarizer
-
-        </a>
-
-        <div class="ms-auto">
-
-            <a href="{{ route('articles.index') }}" class="btn btn-outline-light">
-
-                Articles
+                AI Article Summarizer
 
             </a>
 
+            <div class="ms-auto">
+
+                <a href="{{ route('articles.index') }}" class="btn btn-outline-light">
+
+                    Articles
+
+                </a>
+
+            </div>
+
         </div>
+
+    </nav>
+
+    <div class="container py-4">
+
+        @yield('content')
 
     </div>
 
-</nav>
+    <script>
+        function confirmDelete(form) {
 
-<div class="container py-4">
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'This article will be deleted.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Delete'
+            }).then((result) => {
 
-    @yield('content')
+                if (result.isConfirmed) {
+                    form.submit();
+                }
 
-</div>
+            });
 
+            return false;
+        }
+    </script>
 </body>
 
 </html>

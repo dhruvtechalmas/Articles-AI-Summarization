@@ -18,4 +18,9 @@ class Article extends Model
     protected $casts = [
         'key_points' => 'array',
     ];
+
+    public function user()
+{
+    return $this->belongsTo(User::class);
+}
 }
