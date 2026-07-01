@@ -51,6 +51,7 @@ class ArticleStatusUpdated implements ShouldBroadcast
         return [
             'id' => $this->article->id,
             'status' => $this->article->status,
+            'failure_reason' => $this->article->failure_reason,
             'summary' => $this->article->summary,
             'key_points' => $this->article->key_points,
         ];

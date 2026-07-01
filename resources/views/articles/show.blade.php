@@ -56,17 +56,16 @@
 
                     <tr>
 
-                        <th>
-
-                            Status
-
-                        </th>
-
-                        <td>
-
-                            {{ ucfirst($article->status) }}
-
-                        </td>
+                        @if($article->status === 'failed')
+                            <tr>
+                                <th>Failure Reason</th>
+                                <td>
+                                    <div class="alert alert-danger mb-0">
+                                        {{ $article->failure_reason }}
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
 
                     </tr>
 

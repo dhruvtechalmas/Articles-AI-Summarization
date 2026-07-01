@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ArticleStatusUpdated;
 use App\Http\Requests\StoreArticleRequest;
 use App\Http\Requests\UpdateArticleRequest;
 use App\Jobs\ProcessArticleJob;
@@ -40,9 +41,11 @@ class ArticleController extends Controller
 
             'url' => $request->url,
 
-            'status' => 'pending',
+            'status' => 'processing',
 
         ]);
+
+        event(new ArticleStatusUpdated($article));
 
         ProcessArticleJob::dispatch($article);
 

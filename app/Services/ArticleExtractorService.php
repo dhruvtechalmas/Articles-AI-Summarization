@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Symfony\Component\DomCrawler\Crawler;
 
 class ArticleExtractorService
 {
@@ -15,7 +16,7 @@ class ArticleExtractorService
     {
         try {
             $response = Http::withHeaders([
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                'User-Agent' => 'ArticleSummarizer/1.0 (contact: dhruvtechalmas@gmail.com)',
             ])->timeout(15)->get($url);
 
             if (!$response->successful()) {
@@ -25,17 +26,45 @@ class ArticleExtractorService
 
             $html = $response->body();
 
-            // Clean up HTML tags and extra white spaces
-            $content = strip_tags($html);
-            $content = preg_replace('/\s+/', ' ', $content);
-            $encoding = mb_detect_encoding(
-                $content,['UTF-8', 'ISO-8859-1', 'Windows-1252'],true);
+            $crawler = new Crawler($html);
 
-            if ($encoding !== false) {
-                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+            $content = '';
+
+            if ($crawler->filter('#mw-content-text p')->count()) {
+
+                foreach ($crawler->filter('#mw-content-text p') as $node) {
+
+                    $content .= ' ' . $node->textContent;
+
+                }
+
+            } elseif ($crawler->filter('article p')->count()) {
+
+                foreach ($crawler->filter('article p') as $node) {
+
+                    $content .= ' ' . $node->textContent;
+
+                }
+
+            } elseif ($crawler->filter('main p')->count()) {
+
+                foreach ($crawler->filter('main p') as $node) {
+
+                    $content .= ' ' . $node->textContent;
+
+                }
+
+            } else {
+
+                $content = strip_tags($html);
+
             }
 
-            return trim(mb_substr($content, 0, 8000, 'UTF-8'));
+            $content = preg_replace('/\s+/', ' ', $content);
+
+            $content = trim($content);
+
+            return trim(mb_substr($content, 0, 8000));
 
         } catch (\Exception $e) {
             Log::error("Exception in extractRawContent: " . $e->getMessage());
@@ -48,77 +77,181 @@ class ArticleExtractorService
      */
     public function getAiAnalysis(string $text, string $url): ?array
     {
+        $cacheKey = 'article_summary_' . md5($url);
+
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
+        // Try Gemini first
+        $result = $this->getGeminiAnalysis($text);
+
+        // If Gemini fails, try Groq
+        if (!$result) {
+
+            Log::info('Gemini failed. Trying Groq...');
+
+            $result = $this->getGroqAnalysis($text);
+
+        }
+
+        if ($result) {
+            Cache::put($cacheKey, $result, now()->addHours(24));
+        }
+
+        return $result;
+    }
+
+    private function getGeminiAnalysis(string $text): ?array
+    {
         try {
+
             $apiKey = config('services.gemini.key');
 
-            $cacheKey = 'article_summary_' . md5($url);
+            $response = Http::post(
+                'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey,
+                [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                [
+                                    'text' => 'Return ONLY valid JSON.
 
-            if (!$apiKey) {
-                Log::error("Gemini API Key is not configured correctly in services.php.");
-                return null;
-            }
-
-            if (Cache::has($cacheKey)) {
-                return Cache::get($cacheKey);
-            }
-            $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey;
-
-            if (!mb_check_encoding($text, 'UTF-8')) {
-                Log::error('Invalid UTF-8 detected before Gemini request.');
-                return null;
-            }
-
-            $aiResponse = Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->post($apiUrl, [
-                        'contents' => [
-                            [
-                                'parts' => [
-                                    [
-                                        'text' => "Analyze the following text. You must return your entire response as a valid JSON object matching this exact schema shape:
-                                {
-                                    \"summary\": \"A clean summary of approximately 100 words\",
-                                    \"key_points\": [\"point 1\", \"point 2\", \"point 3\", \"point 4\", \"point 5\"]
-                                }
-                                
-                                Here is the text to analyze:\n\n" . $text
+                                    {
+                                    "summary":"100-word summary",
+                                    "key_points":[
+                                    "Point 1",
+                                    "Point 2",
+                                    "Point 3",
+                                    "Point 4",
+                                    "Point 5"
                                     ]
+                                    }
+
+                                    Article:
+
+                                    ' . $text
                                 ]
                             ]
                         ]
-                    ]);
+                    ]
+                ]
+            );
 
-            if (!$aiResponse->successful()) {
-                Log::error("Gemini API Error. Status: " . $aiResponse->status() . " | Response: " . $aiResponse->body());
+            if (!$response->successful()) {
+
+                Log::error('Gemini Error: ' . $response->body());
+
                 return null;
-            }
-            $data = $aiResponse->json();
 
-            $jsonText = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-
-            if (!$jsonText) {
-                return null;
             }
 
-            // Remove ```json ... ``` if Gemini returns markdown
-            $jsonText = preg_replace('/^```json\s*|```$/m', '', $jsonText);
+            $data = $response->json();
 
-            $result = json_decode($jsonText, true);
+            $json = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+
+            if (!$json) {
+                return null;
+            }
+
+            $json = preg_replace('/^```json\s*|```$/m', '', $json);
+
+            return json_decode($json, true);
+
+        } catch (\Exception $e) {
+
+            Log::error($e->getMessage());
+
+            return null;
+
+        }
+    }
+
+    private function getGroqAnalysis(string $text): ?array
+    {
+        try {
+
+            $response = Http::withToken(config('services.groq.key'))
+
+                ->post(
+                    'https://api.groq.com/openai/v1/chat/completions',
+                    [
+
+                        'model' => 'llama-3.3-70b-versatile',
+
+                        'messages' => [
+
+                            [
+                                'role' => 'system',
+                                'content' => 'You are an expert article summarizer.'
+                            ],
+
+                            [
+                                'role' => 'user',
+                                'content' =>
+                                    'Return ONLY valid JSON.
+
+                                {
+                                "summary":"100-word summary",
+                                "key_points":[
+                                "Point 1",
+                                "Point 2",
+                                "Point 3",
+                                "Point 4",
+                                "Point 5"
+                                ]
+                                }
+
+                                Article:
+
+                                ' . $text
+                            ]
+
+                        ],
+
+                        'temperature' => 0.3
+
+                    ]
+                );
+
+            if (!$response->successful()) {
+
+                Log::error('Groq Error: ' . $response->body());
+
+                return null;
+
+            }
+
+            $data = $response->json();
+
+            $json = $data['choices'][0]['message']['content'] ?? null;
+
+            if (!$json) {
+
+                return null;
+
+            }
+
+            $json = preg_replace('/^```json\s*|```$/m', '', $json);
+
+            $result = json_decode($json, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                Log::error('Gemini JSON parse error: ' . json_last_error_msg());
-                Log::error($jsonText);
-                return null;
-            }
 
-            // Save result in cache for 24 hours
-            Cache::put($cacheKey, $result, now()->addHours(24));
+                Log::error(json_last_error_msg());
+
+                return null;
+
+            }
 
             return $result;
 
         } catch (\Exception $e) {
-            Log::error("Exception in getAiAnalysis: " . $e->getMessage());
+
+            Log::error($e->getMessage());
+
             return null;
+
         }
     }
 }

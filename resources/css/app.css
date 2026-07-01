@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+input[readonly] {
+    background-color: #e9ecef; /* Matches standard disabled background */
+    opacity: 1; 
+    cursor: not-allowed;
+}
+

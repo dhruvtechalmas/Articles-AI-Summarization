@@ -16,7 +16,7 @@ class ProcessArticleJob implements ShouldQueue
     use InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
-    public $backoff = 10;
+    public $backoff = 60;
 
     /**
      * Create a new job instance.
@@ -32,19 +32,28 @@ class ProcessArticleJob implements ShouldQueue
     public function handle(): void
     {
         // 1. Mark status as processing
-        $this->article->update([
-            'status' => 'processing',
-        ]);
+        // $this->article->update([
+        //     'status' => 'processing',
+        //     'failure_reason' => null,
+        // ]);
+        // $this->article->refresh();
 
-        event(new ArticleStatusUpdated($this->article));
-        
+        // event(new ArticleStatusUpdated($this->article));
+
         $extractor = new ArticleExtractorService();
 
         // 2. Step A: Get Raw Text
         $rawContent = $extractor->extractRawContent($this->article->url);
 
         if (!$rawContent) {
-            $this->article->update(['status' => 'failed']);
+
+            $this->article->update([
+                'status' => 'failed',
+                'failure_reason' => 'Unable to fetch the webpage. The URL may be invalid, unavailable, or returned an error.',
+            ]);
+
+            event(new ArticleStatusUpdated($this->article));
+
             return;
         }
 
@@ -54,6 +63,11 @@ class ProcessArticleJob implements ShouldQueue
             $this->article->url
         );
 
+        \Log::info('AI DATA:', [
+            'attempt' => $this->attempts(),
+            'data' => $aiData,
+        ]);
+        
         if (!$aiData || empty($aiData['summary']) || empty($aiData['key_points'])) {
             // Retry if Google's API transiently failed (503)
             if ($this->attempts() < $this->tries) {
@@ -61,7 +75,11 @@ class ProcessArticleJob implements ShouldQueue
                 return;
             }
 
-            $this->article->update(['status' => 'failed']);
+            $this->article->update([
+                'status' => 'failed',
+                'failure_reason' => 'Summary generation failed because the AI service was unavailable or returned an invalid response after 3 attempts.
+                Summary generation failed because the Gemini API quota has been exceeded. Please try again after your quota resets or use another API key.',
+            ]);
 
             event(new ArticleStatusUpdated($this->article));
             return;
@@ -73,6 +91,7 @@ class ProcessArticleJob implements ShouldQueue
             'summary' => $aiData['summary'],    // Stores the 100-word summary
             'key_points' => $aiData['key_points'], // Stores the array of 5 points
             'status' => 'completed',
+            'failure_reason' => null,
         ]);
 
         event(new ArticleStatusUpdated($this->article));

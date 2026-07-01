@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\ArticleStatusUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreArticleRequest;
 use App\Http\Requests\UpdateArticleRequest;
@@ -51,8 +52,10 @@ class ArticleApiController extends Controller
         $article = Article::create([
             'title' => $request->title,
             'url' => $request->url,
-            'status' => 'pending',
+            'status' => 'processing',
         ]);
+
+          event(new ArticleStatusUpdated($article));
 
         ProcessArticleJob::dispatch($article);
 
@@ -94,7 +97,7 @@ class ArticleApiController extends Controller
         $article->update([
             'title' => $request->title,
             'url' => $request->url,
-            'status' => 'pending',
+            'status' => 'processing',
         ]);
 
         ProcessArticleJob::dispatch($article);

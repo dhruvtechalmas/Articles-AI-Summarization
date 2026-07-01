@@ -13,6 +13,7 @@ class Article extends Model
         'summary',
         'key_points',
         'status',
+        'failure_reason',
     ];
 
     protected $casts = [

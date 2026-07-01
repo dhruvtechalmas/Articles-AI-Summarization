@@ -1,69 +1,56 @@
 <x-app-layout>
 
-<div class="container mt-4">
+    <div class="container mt-4">
 
-    <div class="card">
+        <div class="card">
 
-        <div class="card-header">
+            <div class="card-header">
 
-            <h4>Edit Article</h4>
+                <h4>Edit Article</h4>
 
-        </div>
+            </div>
 
-        <div class="card-body">
+            <div class="card-body">
 
-            <form
-                action="{{ route('articles.update',$article) }}"
-                method="POST">
+                <form action="{{ route('articles.update', $article) }}" method="POST">
 
-                @csrf
+                    @csrf
 
-                @method('PUT')
+                    @method('PUT')
 
-                <div class="mb-3">
+                    <div class="mb-3">
 
-                    <label>Title</label>
+                        <label>Title</label>
 
-                    <input
-                        type="text"
-                        name="title"
-                        class="form-control"
-                        value="{{ old('title',$article->title) }}">
+                        <input type="text" name="title" class="form-control" value="{{ old('title', $article->title) }}">
 
-                </div>
+                    </div>
 
-                <div class="mb-3">
+                    <div class="mb-3">
+                        <label>URL</label>
+                        <input type="url" name="url" class="form-control" value="{{ old('url', $article->url) }}"
+                            readonly>
+                    </div>
 
-                    <label>URL</label>
 
-                    <input
-                        type="url"
-                        name="url"
-                        class="form-control"
-                        value="{{ old('url',$article->url) }}">
+                    <button class="btn btn-primary">
 
-                </div>
+                        Update
 
-                <button class="btn btn-primary">
+                    </button>
 
-                    Update
+                    <a href="{{ route('articles.index') }}" class="btn btn-secondary">
 
-                </button>
+                        Cancel
 
-                <a
-                    href="{{ route('articles.index') }}"
-                    class="btn btn-secondary">
+                    </a>
 
-                    Cancel
+                </form>
 
-                </a>
-
-            </form>
+            </div>
 
         </div>
 
     </div>
-
-</div>
 
 </x-app-layout>
